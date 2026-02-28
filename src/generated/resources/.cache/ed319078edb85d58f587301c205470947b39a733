@@ -1,0 +1,7 @@
+// 1.21.1	2026-02-28T11:39:39.4990158	Registrate Provider for create_electricity [Registries, Data Maps, Recipes, Advancements, Loot Tables, Tags (blocks), Tags (enchantments), Tags (items), Tags (fluids), Tags (entity_types), generic_server_provider, Blockstates, Item models, Lang (en_us/en_ud), generic_client_provider]
+d7c430a6ad656a2c23c564f26d8d85b2d737b3b9 assets/create_electricity/blockstates/magnetic_dynamo.json
+4b312cf38b306f121e0b854f6176795da0ea1be7 assets/create_electricity/lang/en_ud.json
+e05fe26592912dcb88b5e0e713ec54bbdeea98f0 assets/create_electricity/lang/en_us.json
+a594ccf023f91b5d726cf5bb227d816e5dd6ee85 assets/create_electricity/models/block/magnetic_dynamo.json
+6509997a811dcb9a763bf0b4c9a2712f16e54cd5 assets/create_electricity/models/item/magnetic_dynamo.json
+252281fc07b34514eb145b38565e1a643b194eb4 data/create_electricity/loot_table/blocks/magnetic_dynamo.json

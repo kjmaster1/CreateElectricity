@@ -53,7 +53,15 @@ public class CreateElectricity {
 
         REGISTRATE.registerEventListeners(modEventBus);
 
+        AllCreativeModeTabs.register(modEventBus);
+        AllBlocks.register();
+        AllItems.register();
+        AllBlockEntityTypes.register();
+        AllRecipeTypes.register(modEventBus);
+        AllDataComponents.register(modEventBus);
 
+        modEventBus.addListener(CreateElectricity::init);
+        modEventBus.addListener(CreateElectricity::onRegister);
     }
 
     public static void init(final FMLCommonSetupEvent event) {

@@ -180,6 +180,8 @@ dependencies {
 
     compileOnly("xaero.lib:xaerolib-neoforge-1.21:1.0.42")
     compileOnly("curse.maven:xaeros-world-map-317780:7401095")
+
+    runtimeOnly("curse.maven:mekanism-268560:7621971")
 }
 
 sourceSets.main {

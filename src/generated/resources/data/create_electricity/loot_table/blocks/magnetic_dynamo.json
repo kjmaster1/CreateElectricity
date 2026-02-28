@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "create_electricity:magnetic_dynamo"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "create_electricity:blocks/magnetic_dynamo"
+}

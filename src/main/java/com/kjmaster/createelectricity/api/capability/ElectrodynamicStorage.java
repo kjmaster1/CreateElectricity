@@ -45,6 +45,14 @@ public class ElectrodynamicStorage implements IElectrodynamicPower {
         return this.maxAmperage;
     }
 
+    public void resetCurrentAmperage() {
+        this.currentAmperage = 0;
+    }
+
+    public void setEnergy(int energy) {
+        this.energy = energy;
+    }
+
     @Override
     public int receivePower(int voltage, int maxAmperage, boolean simulate) {
         if (!canReceive()) return 0;
