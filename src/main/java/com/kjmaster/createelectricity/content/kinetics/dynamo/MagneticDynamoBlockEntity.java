@@ -59,6 +59,8 @@ public class MagneticDynamoBlockEntity extends KineticBlockEntity {
 
         generateEnergy();
 
+        System.out.println("Energy: " + this.energyStorage.getEnergyStored());
+
         // If the electrical load changed, force Create to recalculate the kinetic network
         int currentAmps = this.energyStorage.getCurrentAmperage();
         if (currentAmps != lastTickAmps) {

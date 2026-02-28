@@ -1,5 +1,7 @@
 package com.kjmaster.createelectricity;
 
+import com.kjmaster.createelectricity.api.network.WireType;
+import com.kjmaster.createelectricity.content.items.WireSpoolItem;
 import com.simibubi.create.content.processing.sequenced.SequencedAssemblyItem;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.simibubi.create.foundation.data.recipe.CommonMetal;
@@ -17,6 +19,10 @@ public class AllItems {
     static {
         REGISTRATE.setCreativeTab(AllCreativeModeTabs.BASE_CREATIVE_TAB);
     }
+
+    public static final ItemEntry<WireSpoolItem> COPPER_WIRE_SPOOL = REGISTRATE
+            .item("copper_wire_spool", props -> new WireSpoolItem(props, WireType.COPPER, 16.0f))
+            .register();
 
     private static ItemEntry<Item> ingredient(String name) {
         return REGISTRATE.item(name, Item::new)

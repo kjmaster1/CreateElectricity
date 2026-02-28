@@ -1,9 +1,11 @@
 package com.kjmaster.createelectricity;
 
+import com.kjmaster.createelectricity.content.infrastructure.CeramicInsulatorBlock;
 import com.kjmaster.createelectricity.content.kinetics.dynamo.MagneticDynamoBlock;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.simibubi.create.foundation.data.SharedProperties;
 import com.tterrag.registrate.util.entry.BlockEntry;
+import net.minecraft.world.level.block.SoundType;
 
 public class AllBlocks {
 
@@ -16,6 +18,14 @@ public class AllBlocks {
     public static final BlockEntry<MagneticDynamoBlock> MAGNETIC_DYNAMO = REGISTRATE.block("magnetic_dynamo", MagneticDynamoBlock::new)
             .initialProperties(SharedProperties::stone)
             .item().build()
+            .register();
+
+    public static final BlockEntry<CeramicInsulatorBlock> CERAMIC_INSULATOR = REGISTRATE
+            .block("ceramic_insulator", CeramicInsulatorBlock::new)
+            .initialProperties(SharedProperties::stone)
+            .properties(p -> p.sound(SoundType.DECORATED_POT).noOcclusion()) // Needs noOcclusion so it doesn't block light
+            .item()
+            .build()
             .register();
 
     public static void register() {

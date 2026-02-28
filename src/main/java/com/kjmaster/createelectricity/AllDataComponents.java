@@ -1,5 +1,6 @@
 package com.kjmaster.createelectricity;
 
+import net.minecraft.core.GlobalPos;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.neoforged.bus.api.IEventBus;
@@ -11,6 +12,9 @@ import java.util.function.UnaryOperator;
 public class AllDataComponents {
 
     private static final DeferredRegister.DataComponents DATA_COMPONENTS = DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, CreateElectricity.ID);
+
+    public static final DataComponentType<GlobalPos> SELECTED_NODE =
+            register("selected_node", builder -> builder.persistent(GlobalPos.CODEC));
 
     private static <T> DataComponentType<T> register(String name, UnaryOperator<DataComponentType.Builder<T>> builder) {
         DataComponentType<T> type = builder.apply(DataComponentType.builder()).build();
