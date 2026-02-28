@@ -1,0 +1,358 @@
+plugins {
+    id("idea")
+    id("eclipse")
+    id("maven-publish")
+    id("net.kyori.blossom") version "2.1.0" // https://github.com/KyoriPowered/blossom
+    id("dev.ithundxr.silk") version "1.0.1" // https://github.com/ithundxr/silk
+    id("net.neoforged.moddev") version "2.0.107" // https://projects.neoforged.net/neoforged/ModDevGradle
+    id("me.modmuss50.mod-publish-plugin") version "0.8.4" // https://github.com/modmuss50/mod-publish-plugin
+    id("org.jetbrains.gradle.plugin.idea-ext") version "1.1.8" // https://github.com/JetBrains/gradle-idea-ext-plugin
+}
+
+apply(from: "./gradle/java.gradle")
+apply(from: "./gradle/property_loader.gradle")
+
+// --- Configuration Cache Safe Variables ---
+String releaseEnv = providers.environmentVariable("RELEASE").orNull
+boolean dev = releaseEnv == null || releaseEnv == "false"
+String buildNumber = providers.environmentVariable("BUILD_NUMBER").orNull
+
+// --- Git Hash Task & Provider ---
+def generateGitHashTask = tasks.register("generateGitHash", GenerateGitHash) {
+    outputFile = layout.buildDirectory.file("generated/git/hash.txt")
+    outputs.upToDateWhen { false } // Force this to check Git on every run
+}
+
+def gitHashProvider = providers.fileContents(generateGitHashTask.flatMap { it.outputFile }).asText.map { it.trim() }.orElse("unknown")
+
+base {
+    archivesName = "create-$minecraft_version"
+    group = "com.simibubi.create"
+    version = mod_version + (dev && buildNumber != null ? "-${buildNumber}" : "")
+}
+
+println("Java: ${System.getProperty("java.version")}, JVM: ${System.getProperty("java.vm.version")} (${System.getProperty("java.vendor")}), Arch: ${System.getProperty("os.arch")}")
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+neoForge {
+    version = neo_version
+
+    accessTransformers = files("src/main/templates/META-INF/accesstransformer.cfg")
+
+    if (parchment_version != "none") {
+        parchment {
+            minecraftVersion = parchment_minecraft_version == "same" ? minecraft_version : parchment_minecraft_version
+            mappingsVersion = parchment_version
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+
+    runs {
+        configureEach {
+            systemProperty("forge.logging.markers", "REGISTRIES")
+            jvmArgument("-XX:+IgnoreUnrecognizedVMOptions")
+            jvmArgument("-XX:+AllowEnhancedClassRedefinition")
+            //jvmArgument("-XX:-OmitStackTraceInFastThrow") // uncomment when you get exceptions with null messages etc
+            //jvmArgument("-XX:+UnlockCommercialFeatures") // uncomment for profiling
+
+            systemProperty("mixin.debug.verbose", "true")
+            systemProperty("mixin.debug.export", "true")
+
+            systemProperty("neoforge.enabledGameTestNamespaces", mod_id as String)
+
+            loggingConfigFile = project.file("log4j.xml")
+        }
+
+        client {
+            client()
+        }
+
+        server {
+            server()
+
+            gameDirectory = project.file("run/server")
+
+            programArgument("--nogui")
+        }
+
+        data {
+            data()
+
+            programArguments.addAll(
+                    "--mod", mod_id as String,
+                    "--all",
+                    "--output", file("src/generated/resources/").getAbsolutePath(),
+                    "--existing", file("src/main/resources/").getAbsolutePath()
+            )
+        }
+
+        gameTestServer {
+            type = "gameTestServer"
+        }
+    }
+}
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+repositories {
+    maven { url = "https://maven.createmod.net" } // Ponder, Flywheel
+    maven { url = "https://maven.ithundxr.dev/snapshots" } // Registrate
+    maven { url = "https://maven.blamejared.com" } // JEI, Vazkii's Mods
+    maven { url = "https://maven.theillusivec4.top/" } // Curios API
+    maven { url = "https://maven.squiddev.cc" } // CC: Tweaked
+    maven { url = "https://www.cursemaven.com" }
+    maven { url = "https://api.modrinth.com/maven" }
+    maven { url = "https://maven.ftb.dev/releases" } // FTB Mods
+    maven { url = "https://maven.architectury.dev" } // Arch API
+    maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven" }
+    // NeoForge config api port, needed by ponder
+    maven {
+        url = "https://jm.gserv.me/repository/maven-public" // JourneyMap
+        content {
+            includeGroup "info.journeymap"
+            includeGroup "mysticdrew"
+        }
+    }
+    maven { url "https://chocolateminecraft.com/maven" } // Xaero
+}
+
+dependencies {
+    jarJar(implementation("com.tterrag.registrate:Registrate:$registrate_version"))
+
+    compileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-$minecraft_version:$flywheel_version")
+    runtimeOnly(jarJar("dev.engine-room.flywheel:flywheel-neoforge-$minecraft_version:$flywheel_version") {
+        version {
+            strictly "[${flywheel_version},2.0)"
+            prefer flywheel_version
+        }
+    })
+    runtimeOnly("dev.engine-room.vanillin:vanillin-neoforge-$minecraft_version:$vanillin_version")
+
+    implementation(jarJar("net.createmod.ponder:ponder-neoforge:$ponder_version+mc$minecraft_version") {
+        version {
+            strictly "[$ponder_version+mc$minecraft_version,)"
+            prefer "$ponder_version+mc$minecraft_version"
+        }
+    })
+
+    implementation("com.simibubi.create:create-${minecraft_version}:${create_version}-${create_build}:slim") { transitive = false }
+
+    implementation("mezz.jei:jei-$minecraft_version-neoforge:$jei_version")
+
+    compileOnly("top.theillusivec4.curios:curios-neoforge:$curios_version+$minecraft_version:api")
+    runtimeOnly("top.theillusivec4.curios:curios-neoforge:$curios_version+$minecraft_version")
+
+    compileOnly("maven.modrinth:sodium:mc$minecraft_version-$sodium_version-neoforge")
+
+    if (cc_tweaked_enable.toBoolean()) {
+        compileOnly("cc.tweaked:cc-tweaked-$minecraft_version-core-api:$cc_tweaked_version")
+        compileOnly("cc.tweaked:cc-tweaked-$minecraft_version-forge-api:$cc_tweaked_version")
+        runtimeOnly("cc.tweaked:cc-tweaked-$minecraft_version-forge:$cc_tweaked_version")
+    }
+
+    compileOnly("maven.modrinth:farmers-delight:${farmers_delight_version}")
+    if (farmers_delight_enable.toBoolean()) {
+        implementation("maven.modrinth:farmers-delight:${farmers_delight_version}")
+    }
+
+    runtimeOnly("dev.architectury:architectury-neoforge:13d.0.8")
+    implementation("dev.ftb.mods:ftb-chunks-neoforge:2101.1.1")
+    implementation("dev.ftb.mods:ftb-teams-neoforge:2101.1.0")
+    implementation("dev.ftb.mods:ftb-library-neoforge:2101.1.3")
+
+    implementation("maven.modrinth:journeymap:1.21.1-6.0.0-beta.54+neoforge")
+    implementation("info.journeymap:journeymap-api-neoforge:2.0.0-1.21.1-20260205.200232-15") {
+        exclude(group: "curse.maven") // Pulls in a old version of journey map which is for forge
+    }
+
+    compileOnly("xaero.lib:xaerolib-neoforge-1.21:1.0.42")
+    compileOnly("curse.maven:xaeros-world-map-317780:7401095")
+}
+
+sourceSets.main {
+    java { }
+
+    resources {
+        srcDir("src/generated/resources")
+        exclude(".cache/")
+    }
+
+    blossom {
+        javaSources {
+            properties.put("version", mod_version.toString())
+            properties.put("gitCommit", gitHashProvider)
+        }
+    }
+}
+
+jar {
+    from("LICENSE.md") {
+        rename { "${it}_${base.archivesName.get()}" } // Delayed evaluation for safety
+    }
+
+    manifest.attributes(["MixinConfigs": "create_electricity.mixins.json"])
+
+    // Safely add the git hash at execution time to avoid Provider unpacking issues
+    inputs.property("gitHash", gitHashProvider)
+    doFirst {
+        manifest.attributes(["Git-Hash": gitHashProvider.get()])
+    }
+}
+
+tasks.named("sourcesJar", Jar) {
+    inputs.property("gitHash", gitHashProvider)
+    doFirst {
+        manifest.attributes(["Git-Hash": gitHashProvider.get()])
+    }
+}
+
+final slimJar = tasks.register("slimJar", Jar) {
+    archiveClassifier = "slim"
+    from(sourceSets.main.output)
+
+    manifest.attributes(["MixinConfigs": "create_electricity.mixins.json"])
+
+    inputs.property("gitHash", gitHashProvider)
+    doFirst {
+        manifest.attributes(["Git-Hash": gitHashProvider.get()])
+    }
+}
+
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            "mod_version"           : mod_version,
+            "mod_id"                : mod_id,
+            "mod_name"              : mod_name,
+            "mod_author"            : mod_author,
+            "mod_description"       : mod_description,
+            "mod_license"           : mod_license,
+            "neo_version"           : neo_version,
+            "minecraft_version"     : minecraft_version,
+            "ponder_version"        : ponder_version,
+            "create_version"        : create_version,
+            "flywheel_version_range": flywheel_version_range,
+    ]
+    inputs.properties(replaceProperties)
+    expand(replaceProperties)
+    from("src/main/templates")
+    into("build/generated/sources/modMetadata")
+}
+
+sourceSets.main.resources.srcDir(generateModMetadata)
+neoForge.ideSyncTask(generateModMetadata)
+
+publishing {
+    publications {
+        register("mavenJava", MavenPublication) {
+            artifactId(base.archivesName.get())
+            from(components.java)
+
+            artifact(slimJar) {
+                classifier = "slim"
+            }
+        }
+    }
+
+    repositories {
+        if (project.hasProperty("mavenUsername") && project.hasProperty("mavenPassword") && project.hasProperty("mavenURL")) {
+            project.logger.lifecycle("Adding maven from secrets")
+
+            maven {
+                credentials {
+                    username = project.property("mavenUsername") as String
+                    password = project.property("mavenPassword") as String
+                }
+                url = URI.create(project.property("mavenURL") as String)
+            }
+        }
+
+        if (project.hasProperty("mavendir")) {
+            maven { url mavendir }
+        }
+    }
+}
+
+publishMods {
+    file = jar.archiveFile
+    changelog = silk.changelog
+    type = STABLE
+    version = "mc$minecraft_version-$mod_version"
+    displayName = "$mod_name $mod_version for mc$minecraft_version"
+    modLoaders.add("neoforge")
+
+    curseforge {
+        accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
+        projectId = "328085"
+        minecraftVersions.add(minecraft_version)
+    }
+
+    modrinth {
+        accessToken = providers.environmentVariable("MODRINTH_TOKEN")
+        projectId = "LNytGWDc"
+        minecraftVersions.add(minecraft_version)
+    }
+
+//    github {
+//        accessToken = providers.environmentVariable("GITHUB_TOKEN")
+//        repository = "Creators-of-Create/Create"
+//        commitish = gitHashProvider // Now uses the safe provider if uncommented
+//        tagName = "mc$minecraft_version-$mod_version"
+//        file.unset()
+//        file.unsetConvention()
+//
+//        allowEmptyFiles = true
+//    }
+}
+
+// --- Custom Task Logic ---
+abstract class GenerateGitHash extends DefaultTask {
+    @OutputFile
+    abstract RegularFileProperty getOutputFile()
+
+    @TaskAction
+    void execute() {
+        String hash = "unknown"
+        String modified = ""
+
+        if (project.file(".git").exists()) {
+            try {
+                // Fully qualifying ByteArrayOutputStream avoids the need for an import
+                def hashOut = new ByteArrayOutputStream()
+
+                // project.exec is perfectly Configuration Cache safe inside a @TaskAction
+                project.exec {
+                    commandLine "git", "rev-parse", "HEAD"
+                    standardOutput = hashOut
+                    ignoreExitValue = true
+                }
+                hash = hashOut.toString().trim()
+
+                def statusOut = new ByteArrayOutputStream()
+                project.exec {
+                    commandLine "git", "status", "--porcelain"
+                    standardOutput = statusOut
+                    ignoreExitValue = true
+                }
+                def statusText = statusOut.toString().replaceAll("M gradlew(\\.bat)?", "").trim()
+                if (!statusText.isEmpty()) {
+                    modified = "-modified"
+                }
+            } catch (Exception ignored) {}
+        }
+
+        outputFile.get().asFile.text = hash + modified
+    }
+}
